@@ -1,5 +1,4 @@
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.*;
 
 class BookMyStayApp {
     String guestName;
@@ -9,43 +8,100 @@ class BookMyStayApp {
         this.guestName = guestName;
         this.roomType = roomType;
     }
-
-    void display() {
-        System.out.println("Guest: " + guestName + " | Room Type: " + roomType);
-    }
 }
 
-class BookingRequestQueue {
-    private Queue<Reservation> queue;
+class RoomInventory {
+    private HashMap<String, Integer> inventory;
 
-    BookingRequestQueue() {
-        queue = new LinkedList<>();
+    RoomInventory() {
+        inventory = new HashMap<>();
     }
 
-    void addRequest(Reservation reservation) {
-        queue.add(reservation);
+    void addRoom(String type, int count) {
+        inventory.put(type, count);
     }
 
-    void displayQueue() {
-        for (Reservation r : queue) {
-            r.display();
+    int getAvailability(String type) {
+        return inventory.getOrDefault(type, 0);
+    }
+
+    void decrementRoom(String type) {
+        int count = getAvailability(type);
+        if (count > 0) {
+            inventory.put(type, count - 1);
         }
     }
 }
 
-public class UseCase5BookingRequestQueue {
+class BookingService {
+
+    private Queue<Reservation> queue;
+    private HashMap<String, Set<String>> allocatedRooms;
+    private Set<String> allRoomIds;
+
+    BookingService(Queue<Reservation> queue) {
+        this.queue = queue;
+        allocatedRooms = new HashMap<>();
+        allRoomIds = new HashSet<>();
+    }
+
+    void processBookings(RoomInventory inventory) {
+
+        while (!queue.isEmpty()) {
+
+            Reservation r = queue.poll();
+            String type = r.roomType;
+
+            if (inventory.getAvailability(type) > 0) {
+
+                String roomId = generateRoomId(type);
+
+                while (allRoomIds.contains(roomId)) {
+                    roomId = generateRoomId(type);
+                }
+
+                allRoomIds.add(roomId);
+
+                allocatedRooms.putIfAbsent(type, new HashSet<>());
+                allocatedRooms.get(type).add(roomId);
+
+                inventory.decrementRoom(type);
+
+                System.out.println("Booking Confirmed for " + r.guestName +
+                        " | Room Type: " + type +
+                        " | Room ID: " + roomId);
+            } else {
+                System.out.println("Booking Failed for " + r.guestName +
+                        " | Room Type: " + type + " (Not Available)");
+            }
+        }
+    }
+
+    private String generateRoomId(String type) {
+        return type.substring(0, 2).toUpperCase() + "-" + UUID.randomUUID().toString().substring(0, 4);
+    }
+}
+
+public class UseCase6RoomAllocationService {
 
     public static void main(String[] args) {
 
-        BookingRequestQueue bookingQueue = new BookingRequestQueue();
+        RoomInventory inventory = new RoomInventory();
+        inventory.addRoom("Single Room", 2);
+        inventory.addRoom("Double Room", 1);
+        inventory.addRoom("Suite Room", 1);
 
-        bookingQueue.addRequest(new Reservation("Alice", "Single Room"));
-        bookingQueue.addRequest(new Reservation("Bob", "Double Room"));
-        bookingQueue.addRequest(new Reservation("Charlie", "Suite Room"));
-        bookingQueue.addRequest(new Reservation("David", "Single Room"));
+        Queue<Reservation> queue = new LinkedList<>();
+        queue.add(new Reservation("Alice", "Single Room"));
+        queue.add(new Reservation("Bob", "Double Room"));
+        queue.add(new Reservation("Charlie", "Suite Room"));
+        queue.add(new Reservation("David", "Single Room"));
+        queue.add(new Reservation("Eve", "Single Room"));
 
-        System.out.println("===== Booking Requests (FIFO Order) =====");
+        BookingService service = new BookingService(queue);
 
-        bookingQueue.displayQueue();
+        System.out.println("===== Processing Bookings =====");
+
+        service.processBookings(inventory);
     }
 }
