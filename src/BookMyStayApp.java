@@ -1,72 +1,54 @@
-abstract class BookMyStayApp {
-    String type;
-    int beds;
-    double price;
+import java.util.HashMap;
 
-    Room(String type, int beds, double price) {
-        this.type = type;
-        this.beds = beds;
-        this.price = price;
+class BookMyStayApp {
+
+    private HashMap<String, Integer> inventory;
+
+    RoomInventory() {
+        inventory = new HashMap<>();
     }
 
-    abstract void displayDetails();
-}
-
-class SingleRoom extends Room {
-    SingleRoom() {
-        super("Single Room", 1, 2000);
+    void addRoom(String type, int count) {
+        inventory.put(type, count);
     }
 
-    void displayDetails() {
-        System.out.println(type + " | Beds: " + beds + " | Price: ₹" + price);
-    }
-}
-
-class DoubleRoom extends Room {
-    DoubleRoom() {
-        super("Double Room", 2, 3500);
+    int getAvailability(String type) {
+        return inventory.getOrDefault(type, 0);
     }
 
-    void displayDetails() {
-        System.out.println(type + " | Beds: " + beds + " | Price: ₹" + price);
+    void updateAvailability(String type, int count) {
+        inventory.put(type, count);
+    }
+
+    void displayInventory() {
+        for (String type : inventory.keySet()) {
+            System.out.println(type + " Available: " + inventory.get(type));
+        }
     }
 }
 
-class SuiteRoom extends Room {
-    SuiteRoom() {
-        super("Suite Room", 3, 6000);
-    }
-
-    void displayDetails() {
-        System.out.println(type + " | Beds: " + beds + " | Price: ₹" + price);
-    }
-}
-
-public class UseCase2RoomInitialization {
+public class UseCase3InventorySetup {
 
     public static void main(String[] args) {
 
-        String version = "v2.1";
+        String version = "v3.1";
 
-        Room single = new SingleRoom();
-        Room dbl = new DoubleRoom();
-        Room suite = new SuiteRoom();
+        RoomInventory inventory = new RoomInventory();
 
-        int singleAvailable = 5;
-        int doubleAvailable = 3;
-        int suiteAvailable = 2;
+        inventory.addRoom("Single Room", 5);
+        inventory.addRoom("Double Room", 3);
+        inventory.addRoom("Suite Room", 2);
 
         System.out.println("===== Book My Stay - Hotel Booking System =====");
         System.out.println("Version: " + version);
         System.out.println("===============================================");
 
-        single.displayDetails();
-        System.out.println("Available: " + singleAvailable);
+        inventory.displayInventory();
 
-        dbl.displayDetails();
-        System.out.println("Available: " + doubleAvailable);
+        System.out.println("---- After Update ----");
 
-        suite.displayDetails();
-        System.out.println("Available: " + suiteAvailable);
+        inventory.updateAvailability("Single Room", 4);
+
+        inventory.displayInventory();
     }
 }
