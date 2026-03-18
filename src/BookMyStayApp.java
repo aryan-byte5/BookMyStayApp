@@ -1,72 +1,70 @@
+import java.io.*;
 import java.util.*;
 
-public class BookMyStayApp {
+public class BookMyStayApp implements Serializable {
 
-    static class RoomInventory {
+    private static final long serialVersionUID = 1L;
+
+    static class RoomInventory implements Serializable {
+
+        private static final long serialVersionUID = 1L;
         private Map<String, Integer> inventory = new HashMap<>();
 
         RoomInventory() {
             inventory.put("Single Room", 2);
+            inventory.put("Double Room", 1);
         }
 
-        public synchronized boolean allocateRoom(String roomType) {
-            int available = inventory.getOrDefault(roomType, 0);
-
-            if (available > 0) {
-                inventory.put(roomType, available - 1);
-                return true;
-            }
-            return false;
+        void decrement(String roomType) {
+            inventory.put(roomType, inventory.get(roomType) - 1);
         }
 
-        public void display() {
-            System.out.println("Final Inventory:");
+        void display() {
+            System.out.println("Current Inventory:");
             for (String key : inventory.keySet()) {
                 System.out.println(key + " : " + inventory.get(key));
             }
         }
     }
 
-    static class BookingProcessor implements Runnable {
+    private static final String FILE_NAME = "bookmystay_data.ser";
 
-        private RoomInventory inventory;
-        private String guestName;
-        private String roomType;
-
-        BookingProcessor(RoomInventory inventory, String guestName, String roomType) {
-            this.inventory = inventory;
-            this.guestName = guestName;
-            this.roomType = roomType;
-        }
-
-        public void run() {
-            boolean success = inventory.allocateRoom(roomType);
-
-            if (success) {
-                System.out.println("Booking Successful for " + guestName);
-            } else {
-                System.out.println("Booking Failed for " + guestName);
-            }
+    static void saveState(RoomInventory inventory) {
+        try (ObjectOutputStream out = new ObjectOutputStream(
+                new FileOutputStream(FILE_NAME))) {
+            out.writeObject(inventory);
+            System.out.println("System State Saved Successfully.");
+        } catch (IOException e) {
+            System.out.println("Error Saving State.");
         }
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    static RoomInventory loadState() {
+        try (ObjectInputStream in = new ObjectInputStream(
+                new FileInputStream(FILE_NAME))) {
+            System.out.println("System State Restored Successfully.");
+            return (RoomInventory) in.readObject();
+        } catch (Exception e) {
+            System.out.println("No Previous State Found. Starting Fresh.");
+            return new RoomInventory();
+        }
+    }
 
-        RoomInventory inventory = new RoomInventory();
+    public static void main(String[] args) {
 
-        Thread t1 = new Thread(new BookingProcessor(inventory, "Alice", "Single Room"));
-        Thread t2 = new Thread(new BookingProcessor(inventory, "Bob", "Single Room"));
-        Thread t3 = new Thread(new BookingProcessor(inventory, "Charlie", "Single Room"));
+        RoomInventory inventory = loadState();
 
-        t1.start();
-        t2.start();
-        t3.start();
+        System.out.println("===== System Running =====");
+        inventory.display();
 
-        t1.join();
-        t2.join();
-        t3.join();
+        if (inventory.inventory.get("Single Room") > 0) {
+            inventory.decrement("Single Room");
+            System.out.println("Single Room Booked.");
+        }
 
-        System.out.println("===== All Threads Completed =====");
+        saveState(inventory);
+
+        System.out.println("===== Final State =====");
         inventory.display();
     }
 }
